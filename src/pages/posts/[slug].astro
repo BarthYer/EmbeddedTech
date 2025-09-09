@@ -1,0 +1,27 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts', ({ data }) => !data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+    props: { post }
+  }));
+}
+
+const { post } = Astro.props as { post: CollectionEntry<'posts'> };
+const { title, description, pubDate, heroImage, categories } = post.data;
+const { Content } = await post.render();
+---
+<Base title={`${title} — EmbeddedTech`} description={description}>
+  <article class="container py-10 prose prose-invert">
+    <header class="mb-6">
+      <h1 class="!mb-2">{title}</h1>
+      <div class="text-sm text-white/60">{pubDate.toLocaleDateString('fr-FR')} • {categories?.join(', ')}</div>
+    </header>
+    {heroImage && <img src={heroImage} alt={title} class="rounded-2xl" />}
+    <Content />
+  </article>
+</Base>

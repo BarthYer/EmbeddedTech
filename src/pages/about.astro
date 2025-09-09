@@ -1,0 +1,11 @@
+---
+import Base from '../layouts/Base.astro';
+import { getEntry } from 'astro:content';
+const about = await getEntry('pages', 'about');
+---
+<Base title="About me — EmbeddedTech">
+  <section class="container py-10 prose prose-invert">
+    <h1>{about.data.title}</h1>
+    <Fragment set:html={about.body} />
+  </section>
+</Base>

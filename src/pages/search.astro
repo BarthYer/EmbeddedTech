@@ -1,0 +1,22 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Recherche — EmbeddedTech">
+  <section class="container py-10">
+    <h1 class="text-3xl font-bold">Search</h1>
+    <div id="search" class="mt-4"></div>
+  </section>
+  <script type="module">
+    (async () => {
+      const script = document.createElement('script');
+      script.src = '/pagefind/pagefind.js';
+      script.defer = true;
+      script.onload = async () => {
+        const { PagefindUI } = await import('/pagefind/pagefind-ui.js');
+        new PagefindUI({ element: "#search", showImages: false, autofocus: true, translations: { placeholder: "Search articles…" } });
+      };
+      document.body.appendChild(script);
+    })();
+  </script>
+  <link rel="stylesheet" href="/pagefind/pagefind-ui.css">
+</Base>

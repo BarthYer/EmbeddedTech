@@ -1,0 +1,13 @@
+---
+const categories = [
+  { name: "Yocto Project", href: "/projects#Yocto" },
+  { name: "Zephyr RTOS", href: "/projects#Zephyr" },
+  { name: "Embedded Linux", href: "/projects#Embedded-Linux" },
+  { name: "Hardware Development", href: "/projects#Drivers" },
+  { name: "Bootloaders", href: "/projects#RTOS" },
+  { name: "Security", href: "/projects#CI/CD" },
+];
+---
+<div class="flex flex-wrap gap-3 mt-4">
+  {categories.map((c) => <a href={c.href} class="badge bg-white/10 hover:bg-white/20">{c.name}</a>)}
+</div>

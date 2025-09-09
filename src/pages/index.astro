@@ -1,0 +1,44 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import PostCard from '../components/PostCard.astro';
+import Newsletter from '../components/Newsletter.astro';
+import CategoryPills from '../components/CategoryPills.astro';
+
+const posts = await getCollection('posts', ({ data }) => !data.draft);
+posts.sort((a,b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
+---
+<Base title="Accueil — EmbeddedTech">
+  <section class="container py-12 lg:py-16">
+    <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight text-center">Let's explore embedded systems together</h1>
+    <p class="text-center text-white/70 mt-3 max-w-3xl mx-auto">Explore tutorials, concrete projects, and in-depth reflections on Yocto, Zephyr, Embedded Linux, and hardware development.</p>
+  </section>
+
+  <section class="container py-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-2xl font-semibold">Latest articles</h2>
+      <a href="/projects" class="btn">See all articles</a>
+    </div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+      {posts.slice(0, 6).map((post) => (
+        <PostCard
+          href={`/posts/${post.slug}/`}
+          title={post.data.title}
+          description={post.data.description}
+          pubDate={post.data.pubDate}
+          categories={post.data.categories}
+          heroImage={post.data.heroImage}
+        />
+      ))}
+    </div>
+  </section>
+
+  <section class="container py-10">
+    <Newsletter />
+  </section>
+
+  <section class="container py-6">
+    <h3 class="text-2xl font-semibold">Categories</h3>
+    <CategoryPills />Categories
+  </section>
+</Base>
