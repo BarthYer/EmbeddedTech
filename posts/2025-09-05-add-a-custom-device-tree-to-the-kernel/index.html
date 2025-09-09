@@ -1,0 +1,196 @@
+<!DOCTYPE html><html lang="fr" data-theme="dark"> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="This tutorial explains, step by step, how to add a custom Device Tree"><link rel="icon" href="/logo1.png"><title>Add a Custom Device Tree to the Kernel — EmbeddedTech</title><link rel="alternate" type="application/rss+xml" title="RSS" href="/rss.xml"><link rel="stylesheet" href="/_astro/about.CU6CgJkc.css"><script type="module">const t=document.documentElement,a=localStorage.getItem("theme");a&&t.setAttribute("data-theme",a);const o=document.getElementById("theme-toggle");o?.addEventListener("click",()=>{const e=t.getAttribute("data-theme")==="dark"?"teal-dark":"dark";t.setAttribute("data-theme",e),localStorage.setItem("theme",e)});
+</script></head> <body class="min-h-screen flex flex-col"> <header class="border-b border-white/5 sticky top-0 backdrop-blur supports-[backdrop-filter]:bg-white/5 z-50"> <div class="container py-3 flex items-center justify-between"> <a href="/" class="font-semibold tracking-tight text-teal-300">EmbeddedTech</a> <nav class="flex items-center gap-6 text-sm"> <a class="hover:opacity-80" href="/">Home</a> <a class="hover:opacity-80" href="/projects">Projects</a> <a class="hover:opacity-80" href="/about">About me</a> <a class="hover:opacity-80" href="/search">🔎</a> <button id="theme-toggle" class="px-2 py-1 rounded-xl border border-white/10">☀️</button> </nav> </div> </header> <main class="flex-1"> <article class="container py-10 prose prose-invert"> <header class="mb-6"> <h1 class="!mb-2">Add a Custom Device Tree to the Kernel</h1> <div class="text-sm text-white/60">05/09/2025 • Yocto, Embedded Linux</div> </header> <img src="stm32mp.jpeg" alt="Add a Custom Device Tree to the Kernel" class="rounded-2xl"> <h1 id="how-to-add-a-custom-device-tree-to-the-kernel">How to Add a Custom Device Tree to the Kernel</h1>
+<h2 id="introduction">Introduction</h2>
+<p>This tutorial explains, step by step, how to add a custom Device Tree (DTS) file to the Linux kernel and make sure it is used during boot.</p>
+<p>The <strong>Device Tree</strong> is a data structure that describes the hardware of a system to the Linux kernel. It allows the kernel to be built independently of the specific hardware configuration. By customizing the Device Tree, you can define additional peripherals, configure GPIOs, or enable new hardware features without modifying the kernel source code directly.</p>
+<p>In this tutorial, we will use the <strong>STM32MP257F-DK</strong> development board as an example, but the steps are applicable to other STM32MP2 boards with small adjustments.</p>
+<hr>
+<h2 id="prerequisites">Prerequisites</h2>
+<p>Before you start, make sure you have the following:</p>
+<ul>
+<li>A development PC with the <a href="https://docs.yoctoproject.org/brief-yoctoprojectqs/index.html">Yocto Project</a> installed and configured.</li>
+<li>An <strong>STM32MP257F-DK</strong> evaluation board.</li>
+<li>Basic knowledge of Linux, cross-compilation, and Yocto build system.</li>
+</ul>
+<p>When customizing the kernel in Yocto, you generally avoid editing the original kernel sources directly. Instead, you create a new <strong>meta-layer</strong> to hold your modifications. This ensures your work is clean, modular, and easy to maintain or share.</p>
+<hr>
+<h2 id="step-1-create-and-add-a-custom-yocto-layer">Step 1: Create and Add a Custom Yocto Layer</h2>
+<p>A Yocto layer is a collection of recipes and configuration files that extend or modify the build system.</p>
+<ol>
+<li>
+<p>Create a new layer where you will store your custom files:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">bitbake-layers</span><span style="color:#9ECBFF"> create-layer</span><span style="color:#9ECBFF"> ../../layers-external/meta-extension-stm32mp2</span></span>
+<span class="line"></span></code></pre>
+</li>
+<li>
+<p>Add this new layer to your build environment:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">bitbake-layers</span><span style="color:#9ECBFF"> add-layer</span><span style="color:#9ECBFF"> ../../layers-external/meta-extension-stm32mp2</span></span>
+<span class="line"></span></code></pre>
+</li>
+<li>
+<p>Confirm that the new layer has been successfully added:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">bitbake-layers</span><span style="color:#9ECBFF"> show-layers</span></span>
+<span class="line"></span></code></pre>
+<p>Expected output should show your new <strong>meta-extension-stm32mp2</strong> alongside the other existing layers:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>layer                 path                                                                    priority</span></span>
+<span class="line"><span>========================================================================================================</span></span>
+<span class="line"><span>core                  /home/user/yocto/poky/meta               5</span></span>
+<span class="line"><span>yocto                 /home/user/yocto/poky/meta-poky          5</span></span>
+<span class="line"><span>yoctobsp              /home/user/yocto/poky/meta-yocto-bsp     5</span></span>
+<span class="line"><span>openembedded-layer    /home/user/yocto/meta-openembedded/meta-oe       5</span></span>
+<span class="line"><span>meta-python           /home/user/yocto/meta-openembedded/meta-python   5</span></span>
+<span class="line"><span>stm-st-stm32mp        /home/user/yocto/meta-st-stm32mp         6</span></span>
+<span class="line"><span>meta-extension-stm32mp2  /home/user/yocto/layers-external/meta-extension-stm32mp2  6</span></span>
+<span class="line"><span></span></span></code></pre>
+</li>
+</ol>
+<p>At this point, you have created a separate place where you can safely add your kernel customizations.</p>
+<hr>
+<h2 id="step-2-create-the-custom-device-tree">Step 2: Create the Custom Device Tree</h2>
+<p>Now we will create a new Device Tree file that describes additional hardware (for example, LEDs connected to GPIOs).</p>
+<ol>
+<li>
+<p>Inside your custom layer, create the kernel recipe folder and a file for your Device Tree:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">mkdir</span><span style="color:#79B8FF"> -p</span><span style="color:#9ECBFF"> meta-extension-stm32mp2/recipes-kernel/linux/files/</span></span>
+<span class="line"><span style="color:#79B8FF">cd</span><span style="color:#9ECBFF"> meta-extension-stm32mp2/recipes-kernel/linux/files</span></span>
+<span class="line"><span style="color:#B392F0">touch</span><span style="color:#9ECBFF"> devicetree-extended.dts</span></span>
+<span class="line"></span></code></pre>
+</li>
+<li>
+<p>Add the following content to <code>devicetree-extended.dts</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>/dts-v1/;</span></span>
+<span class="line"><span>#include "stm32mp257f-dk.dts"</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>/ {</span></span>
+<span class="line"><span>    gpio-leds {</span></span>
+<span class="line"><span>        compatible = "gpio-leds";</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>        led-test {</span></span>
+<span class="line"><span>            label = "test";</span></span>
+<span class="line"><span>            gpios = &#x3C;&#x26;gpioc 7 GPIO_ACTIVE_HIGH>;</span></span>
+<span class="line"><span>            linux,default-trigger = "none";</span></span>
+<span class="line"><span>            default-state = "off";</span></span>
+<span class="line"><span>        };</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>        led-green {</span></span>
+<span class="line"><span>            label = "green";</span></span>
+<span class="line"><span>            gpios = &#x3C;&#x26;gpioa 1 GPIO_ACTIVE_HIGH>;</span></span>
+<span class="line"><span>            linux,default-trigger = "none";</span></span>
+<span class="line"><span>            default-state = "off";</span></span>
+<span class="line"><span>        };</span></span>
+<span class="line"><span>    };</span></span>
+<span class="line"><span>};</span></span>
+<span class="line"><span></span></span></code></pre>
+<h3 id="explanation-of-the-code">Explanation of the code:</h3>
+<ul>
+<li><strong>#include “stm32mp257f-dk.dts”</strong> ensures we inherit the default configuration of the board.</li>
+<li>The <strong>gpio-leds</strong> block describes two LEDs:
+<ul>
+<li><strong>test</strong> → mapped to GPIOC7</li>
+<li><strong>green</strong> → mapped to GPIOA1</li>
+</ul>
+</li>
+<li>Each LED is configured as “off” by default and with no trigger assigned (you can control them manually later).</li>
+</ul>
+</li>
+</ol>
+<p>This demonstrates how you can extend the existing Device Tree without rewriting everything.</p>
+<hr>
+<h2 id="step-3-create-the-kernel-recipe-extension-bbappend">Step 3: Create the Kernel Recipe Extension (.bbappend)</h2>
+<p>In Yocto, <strong>.bbappend</strong> files allow you to extend existing recipes without modifying them directly.</p>
+<ol>
+<li>
+<p>Go back to the <strong>recipes-kernel/linux/</strong> directory and create the <strong>.bbappend</strong> file:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#79B8FF">cd</span><span style="color:#9ECBFF"> ../</span></span>
+<span class="line"><span style="color:#B392F0">touch</span><span style="color:#9ECBFF"> linux-stm32mp_%.bbappend</span></span>
+<span class="line"></span></code></pre>
+</li>
+<li>
+<p>Add the following content to <strong>linux-stm32mp_%.bbappend</strong>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>LICENSE = "MIT"</span></span>
+<span class="line"><span>LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>FILESEXTRAPATHS:prepend := "${THISDIR}/files:"</span></span>
+<span class="line"><span>SRC_URI += "file://devicetree-extended.dts"</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>PACKAGE_ARCH = "${MACHINE_ARCH}"</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>do_configure:append() {</span></span>
+<span class="line"><span>    # For 64-bit ARM devices (STM32MP2 is arm64)</span></span>
+<span class="line"><span>    cp ${WORKDIR}/devicetree-extended.dts ${S}/arch/arm64/boot/dts/st</span></span>
+<span class="line"><span>    echo "dtb-\$(CONFIG_ARCH_STM32) += devicetree-extended.dtb " >> ${S}/arch/arm64/boot/dts/st/Makefile</span></span>
+<span class="line"><span>}</span></span>
+<span class="line"><span></span></span></code></pre>
+<h3 id="explanation">Explanation:</h3>
+<ul>
+<li><strong>FILESEXTRAPATHS</strong> tells Yocto where to look for extra files (your <strong>.dts</strong>).</li>
+<li><strong>SRC_URI</strong> adds your DTS file to the sources used during the kernel build.</li>
+<li><strong>do_configure:append()</strong> copies your custom DTS into the correct kernel directory and updates the kernel Makefile to build your new <code>devicetree-extended.dtb</code>.</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="step-4-update-localconf">Step 4: Update <strong>local.conf</strong></h2>
+<p>To make sure your new Device Tree is included in the kernel build, edit <strong>local.conf</strong> and append your DTB:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">KERNEL_DEVICETREE</span><span style="color:#9ECBFF"> +=</span><span style="color:#9ECBFF"> " st/devicetree-extended.dtb "</span></span>
+<span class="line"></span></code></pre>
+<p>This ensures that the new <strong>devicetree-extended.dtb</strong> will be compiled and packaged into the final image.</p>
+<hr>
+<h2 id="step-5-build-the-image">Step 5: Build the Image</h2>
+<p>You are now ready to build the image with your modifications:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">bitbake</span><span style="color:#9ECBFF"> core-image-minimal</span></span>
+<span class="line"></span></code></pre>
+<p>When the build completes, verify that your Device Tree file was integrated into the kernel sources:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">ls</span><span style="color:#9ECBFF"> tmp/work-shared/stm32mp2/kernel-source/arch/arm64/boot/dts/st</span></span>
+<span class="line"></span></code></pre>
+<p>You should see your <strong>devicetree-extended.dts</strong> listed alongside the standard STM32MP2 files.</p>
+<hr>
+<h2 id="step-6-boot-with-the-custom-device-tree">Step 6: Boot with the Custom Device Tree</h2>
+<ol>
+<li>
+<p>Flash the generated image to your STM32MP257F-DK.</p>
+</li>
+<li>
+<p>Interrupt U-Boot at startup by pressing any key.</p>
+</li>
+<li>
+<p>Display the environment variables:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">STM32MP</span><span style="color:#E1E4E8">> </span><span style="color:#9ECBFF">printenv</span></span>
+<span class="line"></span></code></pre>
+<p>You should see something like:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>fdtfile=stm32mp257f-dk.dtb</span></span>
+<span class="line"><span>kernel_addr_r=0x8a000000</span></span>
+<span class="line"><span>fdt_addr_r=0x90000000</span></span>
+<span class="line"><span></span></span></code></pre>
+<p>By default, <code>fdtfile</code> points to the official Device Tree (<code>stm32mp257f-dk.dtb</code>).</p>
+</li>
+<li>
+<p>Replace it with your custom Device Tree:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">STM32MP</span><span style="color:#E1E4E8">> </span><span style="color:#9ECBFF">setenv</span><span style="color:#9ECBFF"> fdtfile</span><span style="color:#9ECBFF"> devicetree-extended.dtb</span></span>
+<span class="line"><span style="color:#B392F0">STM32MP</span><span style="color:#E1E4E8">> </span><span style="color:#9ECBFF">saveenv</span></span>
+<span class="line"></span></code></pre>
+</li>
+<li>
+<p>Continue booting with your new configuration.</p>
+</li>
+</ol>
+<hr>
+<h2 id="step-7-verify-the-custom-device-tree-in-linux">Step 7: Verify the Custom Device Tree in Linux</h2>
+<p>Once Linux has booted, you can check that your custom LEDs are visible:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">ls</span><span style="color:#9ECBFF"> /sys/class/leds/</span></span>
+<span class="line"></span></code></pre>
+<p>Expected output:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>blue:heartbeat  green  test</span></span>
+<span class="line"><span></span></span></code></pre>
+<ul>
+<li><code>blue:heartbeat</code> is the default LED.</li>
+<li><code>green</code> and <code>test</code> are the two new LEDs you added in your Device Tree.</li>
+</ul>
+<p>At this point, you have successfully integrated and tested your custom Device Tree! 🎉</p>
+<hr>
+<h2 id="references1">References1</h2>
+<ul>
+<li><a href="https://docs.yoctoproject.org/">Yocto Project Documentation</a></li>
+<li><a href="https://wiki.st.com/stm32mpu">STMicroelectronics STM32MPU Embedded Software</a></li>
+<li><a href="https://docs.u-boot.org/en/v2025.01/usage/index.html">U-BOOT</a></li>
+</ul> </article> </main> <footer class="border-t border-white/5"> <div class="container py-12 grid md:grid-cols-4 gap-8 text-sm"> <div> <div class="font-semibold text-teal-300">EmbeddedTech</div> <p class="text-white/70 mt-2">Resources and tutorials on embedded systems, Yocto, Zephyr and embedded Linux.</p> <div class="flex gap-3 mt-3"> <a aria-label="GitHub" class="btn" href="https://github.com/BarthYer"><span>GitHub</span></a> <a aria-label="Twitter" class="btn" href="https://twitter.com/"><span>Twitter</span></a> <a aria-label="Linkedin" class="btn" href="www.linkedin.com/in/barthélémy-yerbanga-40a973161"><span>Linkedin</span></a> </div> </div> <div> <div class="font-semibold">Navigation</div> <ul class="mt-2 space-y-2"> <li><a class="hover:underline" href="/">Home</a></li> <li><a class="hover:underline" href="/projects">Projects</a></li> <li><a class="hover:underline" href="/about">About me</a></li> <li><a class="hover:underline" href="/archives">Archives</a></li> </ul> </div> <div> <div class="font-semibold">Categories</div> <ul class="mt-2 space-y-2"> <li>Yocto Project</li> <li>Zephyr RTOS</li> <li>Embedded Linux</li> <li>Hardware Development </li> </ul> </div> <div> <div class="font-semibold">Newsletter</div> <form action="https://buttondown.email/api/emails/embed-subscribe/YOUR_BUTTONDOWN" method="post" target="popupwindow" onsubmit="window.open('https://buttondown.email/YOUR_BUTTONDOWN', 'popupwindow')" class="mt-2 flex gap-2"> <input type="email" name="email" placeholder="Your email" required class="flex-1 px-3 py-2 rounded-xl bg-transparent border border-white/10"> <input type="hidden" value="1" name="embed"> <button class="btn">OK</button> </form> <p class="mt-2 text-white/60">Subscribe via <a class="underline" href="/rss.xml">RSS</a></p> </div> </div> <div class="border-t border-white/5 text-center text-xs py-4 text-white/60">© 2025 EmbeddedTech</div> </footer>  </body> </html>
